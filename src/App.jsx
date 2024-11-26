@@ -1,47 +1,45 @@
 import React, { useEffect, useRef, useState } from "react";
 import MovieWrapper from "./components/MovieWrapper";
+import WrapperBtn from "./components/WrapperBtn";
+import useSearch from "./hooks/UseSearch";
+import StreamList from "./components/StreamList";
+import { Providers } from "./utils/Providers";
+import { useParams } from "react-router";
+import Player from "./components/Player";
+import Loader from "./components/Loader";
 
 export default function App() {
-  const wrapperRef = useRef();
   const [showMovieWrapper, setShowMovieWrapper] = useState(true);
-  const [url, setUrl] = useState("");
+  const [link, setLink] = useState("");
   const iframeRef = useRef();
-  const ServerBtn = useRef();
+  const { data, loading, error } = useSearch();
+  const { id } = useParams();
 
-  console.log(url);
-
-  useEffect(() => {
-    if (url) showAnimation();
-  }, [url]);
-
-  const removeEmbedUrl = () => {
+  const handleWrapperBtn = () => {
+    setShowMovieWrapper(!showMovieWrapper);
     iframeRef.current.src = "";
   };
 
-  const showAnimation = () => {
+  useEffect(() => {
     setShowMovieWrapper(!showMovieWrapper);
-    wrapperRef.current.classList.toggle("-translate-y-[100%]");
-    ServerBtn.current.classList.toggle("hidden");
-  };
+    if (data?.results) document.title = "Streaming: " +data?.results[0].title;
+  }, [link]);
 
-  const handleClick = () => {
-    showAnimation();
-    removeEmbedUrl();
-  };
+  if (!data) {
+    return <Loader />;
+  }
 
   return (
-    <>
-      <div className="relative">
-        <button ref={ServerBtn} onClick={handleClick} className="fixed hidden left-1/2 -translate-x-1/2 w-28 bg-black text-white py-2 font-bold rounded-b-3xl z-10">
-          {showMovieWrapper ? "▲" : "▼"}
-        </button>
+    <div className="group relative">
+      <WrapperBtn handleClick={handleWrapperBtn} showMovieWrapper={showMovieWrapper} />
 
-        <div ref={wrapperRef} id="wrapper" className="absolute w-screen transition-transform duration-500">
-          <MovieWrapper setUrl={setUrl} />
+      <MovieWrapper backdrop={data?.results[0]} show={showMovieWrapper}>
+        <div className="h-screen w-full flex justify-center items-center">
+          <StreamList providers={Providers} setLink={setLink} id={id} />
         </div>
+      </MovieWrapper>
 
-        <div className="text-black">{url && <iframe ref={iframeRef} src={url} allowFullScreen frameBorder="0" className="w-full h-screen"></iframe>}</div>
-      </div>
-    </>
+      <Player resource={link} iframeRef={iframeRef} show={showMovieWrapper} />
+    </div>
   );
 }
